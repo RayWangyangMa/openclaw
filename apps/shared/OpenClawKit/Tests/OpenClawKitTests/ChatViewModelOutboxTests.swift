@@ -45,9 +45,14 @@ func outboxTestCommand(
         deliverySessionKey: "agent:main:\(sessionKey)",
         routingContract: "per-sender|main|main",
         agentID: "main",
+        sendContext: expectedSessionSettings.map {
+            OpenClawChatSendContext(
+                agentID: "main",
+                expectedSessionRoutingContract: "per-sender|main|main",
+                expectedSessionSettings: $0)
+        },
         text: text,
         thinking: "off",
-        expectedSessionSettings: expectedSessionSettings,
         createdAt: createdAt,
         status: .queued,
         retryCount: 0,
@@ -374,6 +379,7 @@ final class OutboxTestTransport: @unchecked Sendable, OpenClawChatTransport {
             message: message,
             thinking: thinking,
             idempotencyKey: idempotencyKey,
+            expectedSessionSettings: context.expectedSessionSettings,
             expectedRoute: nil)
     }
 
@@ -485,7 +491,7 @@ final class OutboxTestTransport: @unchecked Sendable, OpenClawChatTransport {
                     message: message,
                     thinking: thinking,
                     idempotencyKey: idempotencyKey,
-                    expectedSessionSettings: nil,
+                    expectedSessionSettings: context.expectedSessionSettings,
                     expectedRoute: expectedRoute)
             },
             requestTargetedHistory: { sessionKey, agentID in
@@ -884,7 +890,7 @@ struct ChatViewModelOutboxTests {
         #expect(commands.map(\.status) == [.queued])
         #expect(commands.map(\.sessionKey) == ["main"])
         #expect(commands.map(\.deliverySessionKey) == ["agent:main:main"])
-        #expect(commands.map(\.expectedSessionSettings) == [
+        #expect(commands.map(\.sendContext?.expectedSessionSettings) == [
             OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil),
         ])
 
@@ -951,6 +957,9 @@ struct ChatViewModelOutboxTests {
         let context = OpenClawChatSendContext(
             agentID: "main",
             expectedSessionRoutingContract: "per-sender|main|main",
+            expectedSessionSettings: OpenClawChatSessionSettingsExpectation(
+                permissionMode: nil,
+                toolOverrides: nil),
             sessionID: "sess-main",
             queueMode: .followup,
             expectedLeaf: .entry("leaf-main"),
@@ -1258,9 +1267,10 @@ struct ChatViewModelOutboxTests {
             deliverySessionKey: "agent:alpha:main",
             routingContract: "per-sender|main|main",
             agentID: "alpha",
+            sendContext: OpenClawChatSendContext(expectedSessionSettings:
+                OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil)),
             text: "use canonical Luna metadata",
             thinking: "ultra",
-            expectedSessionSettings: OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil),
             createdAt: Date().timeIntervalSince1970,
             status: .queued,
             retryCount: 0,
@@ -1483,9 +1493,10 @@ struct ChatViewModelOutboxTests {
             deliverySessionKey: "agent:agent-a:main",
             routingContract: "per-sender|main|agent-a",
             agentID: "agent-a",
+            sendContext: OpenClawChatSendContext(expectedSessionSettings:
+                OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil)),
             text: "review old failure",
             thinking: "off",
-            expectedSessionSettings: OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil),
             createdAt: Date().timeIntervalSince1970,
             status: .failed,
             retryCount: 1,
@@ -1514,9 +1525,10 @@ struct ChatViewModelOutboxTests {
         #expect(await store.enqueueCommand(OpenClawChatOutboxCommand(
             id: "c-ownerless",
             sessionKey: "global",
+            sendContext: OpenClawChatSendContext(expectedSessionSettings:
+                OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil)),
             text: "choose my owner",
             thinking: "off",
-            expectedSessionSettings: OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil),
             createdAt: Date().timeIntervalSince1970,
             status: .failed,
             retryCount: 0,
@@ -1878,9 +1890,10 @@ struct ChatViewModelOutboxTests {
             id: "c-terminal-write",
             sessionKey: "main",
             routingContract: "per-sender|main|main",
+            sendContext: OpenClawChatSendContext(expectedSessionSettings:
+                OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil)),
             text: "do not skip me",
             thinking: "off",
-            expectedSessionSettings: OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil),
             createdAt: Date().timeIntervalSince1970,
             status: .queued,
             retryCount: OpenClawChatViewModel.maxOutboxSendAttempts - 1,
@@ -1977,7 +1990,7 @@ struct ChatViewModelOutboxTests {
         #expect(preserved.lastError == OpenClawChatSQLiteTranscriptCache.outboxUnconfirmedError)
         #expect(preserved.retryCount == 0)
         #expect(preserved.text == "stale health send")
-        #expect(preserved.expectedSessionSettings ==
+        #expect(preserved.sendContext?.expectedSessionSettings ==
             OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil))
         #expect(await userTexts(vm) == ["stale health send"])
         let bubbleKey = await MainActor.run {
@@ -2167,6 +2180,9 @@ struct ChatViewModelOutboxTests {
         let context = OpenClawChatSendContext(
             agentID: "main",
             expectedSessionRoutingContract: "per-sender|main|main",
+            expectedSessionSettings: OpenClawChatSessionSettingsExpectation(
+                permissionMode: nil,
+                toolOverrides: nil),
             sessionID: "sess-live",
             queueMode: .collect,
             replyToID: "message-7",
@@ -2205,6 +2221,9 @@ struct ChatViewModelOutboxTests {
         let context = OpenClawChatSendContext(
             agentID: "main",
             expectedSessionRoutingContract: "per-sender|main|main",
+            expectedSessionSettings: OpenClawChatSessionSettingsExpectation(
+                permissionMode: nil,
+                toolOverrides: nil),
             sessionID: "replaced-session",
             queueMode: .steer,
             expectedLeaf: .empty,
@@ -2257,6 +2276,9 @@ struct ChatViewModelOutboxTests {
         let context = OpenClawChatSendContext(
             agentID: "main",
             expectedSessionRoutingContract: "per-sender|main|main",
+            expectedSessionSettings: OpenClawChatSessionSettingsExpectation(
+                permissionMode: nil,
+                toolOverrides: nil),
             sessionID: "sess-live",
             queueMode: .followup,
             expectedLeaf: .entry("leaf-before-send"),
@@ -2325,11 +2347,12 @@ struct ChatViewModelOutboxTests {
             OpenClawChatOutboxCommand(
                 id: "c-expired",
                 sessionKey: "main",
+                sendContext: OpenClawChatSendContext(expectedSessionSettings:
+                    OpenClawChatSessionSettingsExpectation(
+                        permissionMode: nil,
+                        toolOverrides: nil)),
                 text: "old message",
                 thinking: "off",
-                expectedSessionSettings: OpenClawChatSessionSettingsExpectation(
-                    permissionMode: nil,
-                    toolOverrides: nil),
                 createdAt: staleCreatedAt,
                 status: .queued,
                 retryCount: 0,
@@ -2377,11 +2400,12 @@ struct ChatViewModelOutboxTests {
                 id: "c-think",
                 sessionKey: "reasoning-session",
                 routingContract: "per-sender|main|main",
+                sendContext: OpenClawChatSendContext(expectedSessionSettings:
+                    OpenClawChatSessionSettingsExpectation(
+                        permissionMode: nil,
+                        toolOverrides: nil)),
                 text: "think hard",
                 thinking: "high",
-                expectedSessionSettings: OpenClawChatSessionSettingsExpectation(
-                    permissionMode: nil,
-                    toolOverrides: nil),
                 createdAt: now,
                 status: .queued,
                 retryCount: 0,
@@ -2391,11 +2415,12 @@ struct ChatViewModelOutboxTests {
                 id: "c-plain",
                 sessionKey: "plain-session",
                 routingContract: "per-sender|main|main",
+                sendContext: OpenClawChatSendContext(expectedSessionSettings:
+                    OpenClawChatSessionSettingsExpectation(
+                        permissionMode: nil,
+                        toolOverrides: nil)),
                 text: "no thinking",
                 thinking: "medium",
-                expectedSessionSettings: OpenClawChatSessionSettingsExpectation(
-                    permissionMode: nil,
-                    toolOverrides: nil),
                 createdAt: now + 1,
                 status: .queued,
                 retryCount: 0,
@@ -2432,11 +2457,12 @@ struct ChatViewModelOutboxTests {
                 id: "c-background",
                 sessionKey: "other-session",
                 routingContract: "per-sender|main|main",
+                sendContext: OpenClawChatSendContext(expectedSessionSettings:
+                    OpenClawChatSessionSettingsExpectation(
+                        permissionMode: nil,
+                        toolOverrides: nil)),
                 text: "sent from elsewhere",
                 thinking: "off",
-                expectedSessionSettings: OpenClawChatSessionSettingsExpectation(
-                    permissionMode: nil,
-                    toolOverrides: nil),
                 createdAt: Date().timeIntervalSince1970,
                 status: .queued,
                 retryCount: 0,
@@ -2466,9 +2492,10 @@ struct ChatViewModelOutboxTests {
             deliverySessionKey: "agent:main:main",
             routingContract: "per-sender|main|main",
             agentID: "main",
+            sendContext: OpenClawChatSendContext(expectedSessionSettings:
+                OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil)),
             text: "canonical alias",
             thinking: "off",
-            expectedSessionSettings: OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil),
             createdAt: Date().timeIntervalSince1970,
             status: .queued,
             retryCount: 0,
@@ -2517,11 +2544,12 @@ struct ChatViewModelOutboxTests {
                 OpenClawChatOutboxCommand(
                     id: "prefill-\(index)",
                     sessionKey: "other",
+                    sendContext: OpenClawChatSendContext(expectedSessionSettings:
+                        OpenClawChatSessionSettingsExpectation(
+                            permissionMode: nil,
+                            toolOverrides: nil)),
                     text: "m\(index)",
                     thinking: "off",
-                    expectedSessionSettings: OpenClawChatSessionSettingsExpectation(
-                        permissionMode: nil,
-                        toolOverrides: nil),
                     createdAt: Date().timeIntervalSince1970,
                     status: .queued,
                     retryCount: 0,
@@ -2879,9 +2907,10 @@ extension ChatViewModelOutboxTests {
             id: UUID().uuidString,
             sessionKey: "main",
             routingContract: "per-sender|main|main",
+            sendContext: OpenClawChatSendContext(expectedSessionSettings:
+                OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil)),
             text: "queued by the previous launch",
             thinking: "off",
-            expectedSessionSettings: OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil),
             createdAt: Date().timeIntervalSince1970 - 60,
             status: .queued,
             retryCount: 0,
@@ -2926,9 +2955,10 @@ extension ChatViewModelOutboxTests {
             id: UUID().uuidString,
             sessionKey: "second",
             routingContract: "per-sender|main|main",
+            sendContext: OpenClawChatSendContext(expectedSessionSettings:
+                OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil)),
             text: "backlog in second session",
             thinking: "off",
-            expectedSessionSettings: OpenClawChatSessionSettingsExpectation(permissionMode: nil, toolOverrides: nil),
             createdAt: Date().timeIntervalSince1970 - 60,
             status: .queued,
             retryCount: 0,
