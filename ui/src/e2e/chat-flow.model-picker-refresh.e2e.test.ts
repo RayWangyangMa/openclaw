@@ -116,6 +116,7 @@ suite.define(() => {
       picker = page.locator('openclaw-chat-pane[aria-hidden="false"] .chat-controls__model-picker');
       await picker.locator('[data-chat-model-select="true"]').tap();
       await picker.getByText("Selection target: Global default", { exact: true }).waitFor();
+      await picker.getByText("Only for this session", { exact: true }).waitFor();
       await expect
         .poll(() =>
           picker.locator('[data-chat-model-select="true"]').getAttribute("data-chat-select-value"),

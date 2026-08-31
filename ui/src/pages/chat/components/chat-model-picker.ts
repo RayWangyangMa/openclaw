@@ -323,9 +323,9 @@ export function renderChatModelPicker(params: ChatModelPickerParams) {
         : params.modelSelectionTarget === "global"
           ? t("chat.modelControls.selectionTargetGlobal")
           : undefined;
-  const provenanceLabel =
-    selectionTargetLabel ??
-    (params.sessionModelPinned ? t("chat.modelControls.onlyForSession") : undefined);
+  const sessionPinProvenanceLabel = params.sessionModelPinned
+    ? t("chat.modelControls.onlyForSession")
+    : undefined;
   const selectModel = (entry: ChatModelPickerOption, event: MouseEvent) => {
     event.stopPropagation();
     if (params.disabled || params.modelSelectionLocked || entry.disabled) {
@@ -594,14 +594,25 @@ export function renderChatModelPicker(params: ChatModelPickerParams) {
                       ${params.contextWindow
                         ? renderContextWindowControl(params.contextWindow, params.sessionKey)
                         : nothing}
-                      ${provenanceLabel ||
+                      ${selectionTargetLabel ||
+                      sessionPinProvenanceLabel ||
                       (params.sessionModelPinned && params.modelOptions.length > 0)
                         ? html`<footer class="chat-controls__model-provenance">
-                            ${provenanceLabel
-                              ? html`<span
-                                  ?data-chat-model-selection-target=${Boolean(selectionTargetLabel)}
-                                >
-                                  ${provenanceLabel}
+                            ${selectionTargetLabel || sessionPinProvenanceLabel
+                              ? html`<span>
+                                  ${selectionTargetLabel
+                                    ? html`<span data-chat-model-selection-target>
+                                        ${selectionTargetLabel}
+                                      </span>`
+                                    : nothing}
+                                  ${selectionTargetLabel && sessionPinProvenanceLabel
+                                    ? html`<br />`
+                                    : nothing}
+                                  ${sessionPinProvenanceLabel
+                                    ? html`<span data-chat-model-pin-provenance>
+                                        ${sessionPinProvenanceLabel}
+                                      </span>`
+                                    : nothing}
                                 </span>`
                               : nothing}
                             ${params.sessionModelPinned && params.modelOptions.length > 0

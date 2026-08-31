@@ -7211,6 +7211,40 @@ describe("chat model controls", () => {
     container.remove();
   });
 
+  it.each([
+    { target: "agent", targetLabel: "Selection target: This agent's default" },
+    { target: "global", targetLabel: "Selection target: Global default" },
+  ] as const)(
+    "keeps a pinned reset session-only while model rows write to the $target target",
+    ({ target, targetLabel }) => {
+      const { state } = createChatHeaderState({
+        model: "gpt-5.4",
+        modelOverrideSource: "user",
+        modelProvider: "openai",
+        models: createOpenAiModelCatalog(),
+      });
+      state.sessionsResult = {
+        ...expectDefined(state.sessionsResult, "sessions result"),
+        defaults: {
+          ...expectDefined(state.sessionsResult, "sessions result").defaults,
+          modelSelectionTarget: target,
+        },
+      };
+      const onModelSelect = vi.fn(async () => true);
+      const container = renderModelControls(state, { onModelSelect });
+
+      expect(container.querySelector("[data-chat-model-selection-target]")?.textContent).toContain(
+        targetLabel,
+      );
+      expect(container.querySelector("[data-chat-model-pin-provenance]")?.textContent).toContain(
+        "Only for this session",
+      );
+      container.querySelector<HTMLButtonElement>("[data-chat-model-reset]")?.click();
+
+      expect(onModelSelect).toHaveBeenCalledWith("", "main");
+    },
+  );
+
   // Settings can move the agent default onto — and back off — a session's pinned
   // model. Provenance must survive both moves, and the default row must stay a live
   // way to clear the pin while the two values coincide.
