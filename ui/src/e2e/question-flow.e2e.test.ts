@@ -475,7 +475,7 @@ suite.define(() => {
     await expect.poll(() => secretInput.count()).toBe(1);
     expect(await secretInput.getAttribute("type")).toBe("password");
     expect(await secretInput.getAttribute("autocomplete")).toBe("off");
-    expect(await secretInput.getAttribute("placeholder")).toBe("Enter DEPLOY_API_KEY");
+    expect(await secretInput.getAttribute("placeholder")).toBe("DEPLOY_API_KEY");
     await expect.poll(() => panel.locator('[role="radiogroup"]').count()).toBe(0);
     const hostsInput = panel.locator(".chat-question-panel__hosts");
     expect(await hostsInput.inputValue()).toBe("api.example.test");

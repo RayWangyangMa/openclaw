@@ -184,7 +184,7 @@ describe("shared question panel", () => {
 
     expect(hosts.value).toBe("api.example.test");
     expect(secret.autocomplete).toBe("off");
-    expect(secret.placeholder).toBe("Enter FAKE_DEPLOYMENT_API_KEY");
+    expect(secret.placeholder).toBe("FAKE_DEPLOYMENT_API_KEY");
     expect(secret.closest("label")?.textContent).toContain("API key");
     expect(container.querySelector(".chat-question-panel__options")).toBeNull();
     expect(container.querySelector(".chat-question-panel__option-marker")).toBeNull();
@@ -241,7 +241,7 @@ describe("shared question panel", () => {
       const input = container.querySelector<HTMLInputElement>("input")!;
       const submit = container.querySelector<HTMLButtonElement>(".chat-question-panel__advance")!;
       expect(input.value).toBe(expected ?? "");
-      expect(input.placeholder).toBe("Enter Value");
+      expect(input.placeholder).toBe("Value");
       expect(submit.disabled).toBe(expected === null);
       submit.click();
       if (expected === null) {
@@ -251,6 +251,26 @@ describe("shared question panel", () => {
       }
     },
   );
+
+  it("labels optionless answers when the compact header is empty", async () => {
+    drawGateway(
+      gatewayPrompt({
+        questions: [
+          {
+            questionId: "value",
+            header: "",
+            question: "Provide a value",
+            options: [],
+          },
+        ],
+      }),
+    );
+    await panelIn(container);
+
+    const input = container.querySelector<HTMLInputElement>("input")!;
+    expect(input.closest("label")?.textContent).toContain("Answer");
+    expect(input.placeholder).toBe("Answer");
+  });
 
   it("keeps environment store requests masked without exposing a destination-host editor", async () => {
     drawGateway(

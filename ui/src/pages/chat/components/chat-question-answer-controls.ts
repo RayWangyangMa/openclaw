@@ -70,15 +70,16 @@ export function renderQuestionFreeText(props: QuestionFreeTextProps) {
     }
   };
   if (question.options.length === 0) {
+    const answerLabel = question.header || t("chat.questions.answer");
     return html`
       <label class="field">
-        <span>${question.header}</span>
+        <span>${answerLabel}</span>
         <input
           class="input"
           type=${question.isSecret ? "password" : "text"}
           autocomplete="off"
           placeholder=${t("chat.questions.answerPlaceholder", {
-            label: question.secretStore?.name ?? question.header,
+            label: question.secretStore?.name ?? answerLabel,
           })}
           .value=${props.value}
           ?disabled=${props.disabled}
