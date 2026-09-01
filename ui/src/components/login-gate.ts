@@ -48,7 +48,6 @@ type LoginFailureFeedback = {
   refreshAction?: { label: string };
   steps: LoginFailureStep[];
   docsHref: string;
-  docsLabel: string;
   rawError: string;
 };
 
@@ -79,19 +78,6 @@ type LoginFailureFeedbackParams = {
   hasToken: boolean;
   hasPassword: boolean;
 };
-
-function resolveDocsLabel(href: string): string {
-  if (href.includes("/concepts/user-model")) {
-    return t("login.failure.docsProfile");
-  }
-  if (href.includes("insecure-http")) {
-    return t("login.failure.docsInsecure");
-  }
-  if (href.includes("device-pairing")) {
-    return t("login.failure.docsPairing");
-  }
-  return t("login.failure.docsAuth");
-}
 
 // Shared with offline presentation so no disconnected surface prints credentials.
 export function redactLoginFailureError(value: string): string {
@@ -131,7 +117,6 @@ function buildFeedback(params: {
         : { text: t(step.key, params.stepParams), commands: step.commands },
     ),
     docsHref,
-    docsLabel: resolveDocsLabel(docsHref),
     rawError,
   };
 }
@@ -425,7 +410,7 @@ function renderLoginFailure(feedback: LoginFailureFeedback) {
         href=${feedback.docsHref}
         target=${EXTERNAL_LINK_TARGET}
         rel=${buildExternalLinkRel()}
-        >${feedback.docsLabel}</a
+        >${t("common.learnMore")}</a
       >
     </div>
   `;
