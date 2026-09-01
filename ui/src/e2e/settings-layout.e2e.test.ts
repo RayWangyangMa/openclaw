@@ -127,11 +127,39 @@ const standaloneHeaderCases = [
 ] as const satisfies ReadonlyArray<{ route: RouteId; subtitle: string }>;
 
 function createCronLayoutMethodResponses() {
+  const jobs = [
+    {
+      id: "healthy",
+      configRevision: "healthy-revision",
+      name: "Healthy automation",
+      enabled: true,
+      createdAtMs: 0,
+      updatedAtMs: 0,
+      schedule: { kind: "every", everyMs: 60_000 },
+      sessionTarget: "main",
+      wakeMode: "next-heartbeat",
+      payload: { kind: "systemEvent", text: "healthy" },
+      state: { lastRunStatus: "ok" },
+    },
+    {
+      id: "failing",
+      configRevision: "failing-revision",
+      name: "Failing automation",
+      enabled: true,
+      createdAtMs: 0,
+      updatedAtMs: 0,
+      schedule: { kind: "every", everyMs: 60_000 },
+      sessionTarget: "main",
+      wakeMode: "next-heartbeat",
+      payload: { kind: "systemEvent", text: "failing" },
+      state: { lastRunStatus: "error" },
+    },
+  ];
   return {
     "cron.list": {
-      jobs: [],
+      jobs,
       snapshotRevision: "settings-layout",
-      total: 0,
+      total: jobs.length,
       offset: 0,
       limit: 50,
       hasMore: false,
@@ -145,7 +173,7 @@ function createCronLayoutMethodResponses() {
       hasMore: false,
       nextOffset: null,
     },
-    "cron.status": { enabled: true, jobs: 0, nextWakeAtMs: null },
+    "cron.status": { enabled: true, jobs: jobs.length, nextWakeAtMs: null },
   };
 }
 
@@ -367,7 +395,7 @@ suite.define(() => {
     }
   });
 
-  it("keeps Automations actions below search and above the table", async () => {
+  it("keeps Automations search above one tab-and-action row", async () => {
     const context = await suite.browser.newContext({
       colorScheme: "dark",
       locale: "en-US",
@@ -388,31 +416,50 @@ suite.define(() => {
         await expect
           .poll(() =>
             page.evaluate(() => {
-              const tabs = document.querySelector<HTMLElement>(".cron-toolbar__primary");
+              const primary = document.querySelector<HTMLElement>(".cron-toolbar__primary");
               const filters = document.querySelector<HTMLElement>(".cron-toolbar__filters");
               const actions = document.querySelector<HTMLElement>(".cron-toolbar__actions");
               const table = document.querySelector<HTMLElement>(".cron-table");
-              if (!tabs || !filters || !actions || !table) {
+              const tabGroup = document.querySelector<HTMLElement>(".cron-list-hub-tabs");
+              if (!primary || !filters || !actions || !table || !tabGroup) {
                 return null;
               }
-              const tabsStyle = getComputedStyle(tabs);
+              const primaryBox = primary.getBoundingClientRect();
               const filtersBox = filters.getBoundingClientRect();
               const actionsBox = actions.getBoundingClientRect();
               const tableBox = table.getBoundingClientRect();
+              const tabBox = tabGroup.getBoundingClientRect();
               return {
                 actionsAboveTable: actionsBox.bottom <= tableBox.top,
                 actionsRightAligned: Math.abs(tableBox.right - actionsBox.right) <= 1,
-                dividerWidth: tabsStyle.borderBottomWidth,
-                filtersAboveActions: filtersBox.bottom <= actionsBox.top,
+                actionsInlineWithTabs:
+                  Math.abs(
+                    actionsBox.top + actionsBox.height / 2 - (tabBox.top + tabBox.height / 2),
+                  ) <= 1,
+                filtersAbovePrimary: filtersBox.bottom <= primaryBox.top,
+                primaryContainsActions: primary.contains(actions),
               };
             }),
           )
           .toEqual({
             actionsAboveTable: true,
+            actionsInlineWithTabs: true,
             actionsRightAligned: true,
-            dividerWidth: "0px",
-            filtersAboveActions: true,
+            filtersAbovePrimary: true,
+            primaryContainsActions: true,
           });
+
+        expect(
+          (await page.locator(".cron-list-hub-tabs wa-tab").allTextContents()).map((label) =>
+            label.trim(),
+          ),
+        ).toEqual(["All", "Active", "Paused", "Run history"]);
+        expect(await page.locator(".cron-toolbar__filters wa-radio-group").count()).toBe(0);
+        expect(await page.locator(".cron-stats").count()).toBe(0);
+        expect(await page.locator(".cron-table__name-text").allTextContents()).toEqual([
+          "Failing automation",
+          "Healthy automation",
+        ]);
 
         if (proofEnabled) {
           const proofDir = path.join(suite.artifactDir, "settings-layout-audit");
@@ -420,7 +467,7 @@ suite.define(() => {
           await page.screenshot({
             animations: "disabled",
             fullPage: true,
-            path: path.join(proofDir, `automations-actions-${viewport.width}.png`),
+            path: path.join(proofDir, `automations-toolbar-${viewport.width}.png`),
           });
         }
       }

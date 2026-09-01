@@ -555,7 +555,7 @@ describe("CronPage editor state sync", () => {
     });
   });
 
-  it("scopes list, stats, and run history requests to the selected agent", async () => {
+  it("scopes list and run history requests to the selected agent", async () => {
     const request = createRequest();
     const gateway = createGateway({ request } as unknown as GatewayBrowserClient, true);
     createPage(createContext(gateway, "writer"));
@@ -616,25 +616,6 @@ describe("CronPage editor state sync", () => {
     await waitForCronPage(() => expect(page.cron.cronCreateOpen).toBe(false));
     await waitForCronPage(() =>
       expect(page.textContent).toContain("Run queued. Run ID: run-fresh"),
-    );
-  });
-
-  it("drills from the failing stat into run history filtered to errors", async () => {
-    const request = createRequest();
-    const client = { request } as unknown as GatewayBrowserClient;
-    const gateway = createGateway(client, true);
-    const page = createPage(createContext(gateway), { render: true });
-
-    await waitForCronPage(() =>
-      expect(page.querySelector('[data-test-id="cron-stat-failing"]')).not.toBeNull(),
-    );
-    (page.querySelector('[data-test-id="cron-stat-failing"]') as HTMLButtonElement).click();
-
-    await waitForCronPage(() => expect(page.querySelector(".cron-activity")).not.toBeNull());
-    expect(page.cron.cronRunsStatuses).toEqual(["error"]);
-    expect(request).toHaveBeenCalledWith(
-      "cron.runs",
-      expect.objectContaining({ statuses: ["error"] }),
     );
   });
 

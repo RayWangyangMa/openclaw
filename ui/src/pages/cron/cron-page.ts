@@ -17,11 +17,9 @@ import {
   createInitialCronState,
   getVisibleCronJobs,
   hasCronFormErrors,
-  loadCronFailingCount,
   loadCronJobsPage,
   loadCronModelSuggestions,
   loadCronRuns,
-  loadCronScopeStats,
   loadCronStatus,
   loadMoreCronRuns,
   normalizeCronFormState,
@@ -220,8 +218,6 @@ class CronPage extends OpenClawLightDomElement {
     void this.context.channels.refresh(false);
     await Promise.all([
       this.runCronTask((current) => loadCronStatus(current)),
-      this.runCronTask((current) => loadCronFailingCount(current)),
-      this.runCronTask((current) => loadCronScopeStats(current)),
       this.runCronTask((current) =>
         loadCronJobsPage(current, { tableFilters: options.tableFilters }),
       ),
@@ -437,10 +433,6 @@ class CronPage extends OpenClawLightDomElement {
           listError: this.cron.cronJobsError,
           canManage,
           status: this.cron.cronStatus,
-          failingCount: this.cron.cronFailingCount,
-          agentScoped: this.cron.cronAgentId !== null,
-          scopedTotal: this.cron.cronScopedTotal,
-          scopedNextWakeAtMs: this.cron.cronScopedNextWakeAtMs,
           jobs: getVisibleCronJobs(this.cron),
           jobsLoadingMore: this.cron.cronJobsLoadingMore,
           jobsTotal: this.cron.cronJobsTotal,
