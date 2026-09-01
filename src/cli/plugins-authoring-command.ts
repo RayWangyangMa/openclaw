@@ -501,7 +501,10 @@ function writeToolPluginScaffold(params: { rootDir: string; id: string; name: st
       typebox: "^1.1.38",
     },
     devDependencies: {
-      openclaw: "latest",
+      // Floor the toolchain at the generating host. "latest" lets npm resolve below it
+      // whenever the dist-tag trails the host (betas, source checkouts, a rolled-back tag),
+      // and plugin:build then runs an older CLI that rejects the host's active config.
+      openclaw: `>=${VERSION}`,
       typescript: "^5.9.0",
       vitest: "^3.2.0",
     },
@@ -598,7 +601,8 @@ function writeProviderPluginScaffold(params: { rootDir: string; id: string; name
     },
     devDependencies: {
       clawhub: "latest",
-      openclaw: "latest",
+      // Same floor as the tool-plugin scaffold above.
+      openclaw: `>=${VERSION}`,
       typescript: "^5.9.0",
       vitest: "^3.2.0",
     },

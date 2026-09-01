@@ -712,7 +712,7 @@ describe("plugin authoring commands", () => {
         openclaw: ">=2026.5.17",
       },
       devDependencies: {
-        openclaw: "latest",
+        openclaw: `>=${VERSION}`,
         typescript: "^5.9.0",
         vitest: "^3.2.0",
       },
@@ -776,7 +776,7 @@ describe("plugin authoring commands", () => {
       },
       devDependencies: {
         clawhub: "latest",
-        openclaw: "latest",
+        openclaw: `>=${VERSION}`,
         typescript: "^5.9.0",
         vitest: "^3.2.0",
       },
