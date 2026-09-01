@@ -82,7 +82,11 @@ describe("Doctor workspace persistence", () => {
                 ownership: "explicit",
                 ...(shape === "entries"
                   ? { entries }
-                  : { list: Object.entries(entries).map(([id, entry]) => ({ id, ...entry })) }),
+                  : {
+                      list: Object.entries(entries).map(([id, entry]) =>
+                        Object.assign({ id }, entry),
+                      ),
+                    }),
               },
               gateway: { mode: "local" },
               plugins: { enabled: false },
