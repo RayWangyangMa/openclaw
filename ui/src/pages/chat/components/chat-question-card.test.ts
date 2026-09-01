@@ -119,6 +119,11 @@ describe("shared question panel", () => {
       ),
     ).not.toBeNull();
     expect(container.querySelector(".chat-question-panel__option--other kbd")).not.toBeNull();
+    expect(container.querySelector('[role="radiogroup"]')).not.toBeNull();
+    expect(
+      container.querySelector<HTMLInputElement>(".chat-question-panel__option--other input")
+        ?.placeholder,
+    ).toBe("Type your own answer here");
     expect(container.querySelector(".chat-question-panel__progress")?.textContent).toBe("1/2");
     container.querySelector<HTMLButtonElement>('[role="radio"]')?.click();
     await panel.updateComplete;
@@ -179,6 +184,9 @@ describe("shared question panel", () => {
 
     expect(hosts.value).toBe("api.example.test");
     expect(secret.autocomplete).toBe("off");
+    expect(secret.placeholder).toBe("Enter FAKE_DEPLOYMENT_API_KEY");
+    expect(secret.closest("label")?.textContent).toContain("API key");
+    expect(container.querySelector(".chat-question-panel__options")).toBeNull();
     expect(container.querySelector(".chat-question-panel__option-marker")).toBeNull();
     expect(container.querySelector("kbd")).toBeNull();
     expect(container.textContent).toContain("release-agent");
@@ -233,6 +241,7 @@ describe("shared question panel", () => {
       const input = container.querySelector<HTMLInputElement>("input")!;
       const submit = container.querySelector<HTMLButtonElement>(".chat-question-panel__advance")!;
       expect(input.value).toBe(expected ?? "");
+      expect(input.placeholder).toBe("Enter Value");
       expect(submit.disabled).toBe(expected === null);
       submit.click();
       if (expected === null) {
@@ -294,6 +303,29 @@ describe("shared question panel", () => {
 
     expect(container.querySelector('[aria-checked="true"]')).toBeNull();
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("does not expose an Other shortcut for optionless free text", async () => {
+    drawGateway(
+      gatewayPrompt({
+        questions: [
+          {
+            questionId: "value",
+            header: "Value",
+            question: "Provide a value",
+            options: [],
+            isOther: true,
+          },
+        ],
+      }),
+    );
+    await panelIn(container);
+    const group = container.querySelector<HTMLElement>(".chat-question-panel")!;
+    const event = new KeyboardEvent("keydown", { key: "1", bubbles: true, cancelable: true });
+
+    group.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
   });
 
   it("uses roving radio focus and arrow-key selection", async () => {
