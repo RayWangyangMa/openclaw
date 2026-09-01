@@ -389,9 +389,10 @@ suite.define(() => {
         expect(await card.locator("[onclick]").count()).toBe(0);
         expect(await card.textContent()).not.toContain("progressCardPwned");
         expect(await card.locator(".session-progress-card__step").count()).toBe(0);
+        expect(await notepad.evaluate((node) => getComputedStyle(node).borderTopWidth)).toBe("1px");
         expect(
           await card
-            .locator(".session-hovercard__section")
+            .locator(".session-hovercard__section:not(.session-hovercard__notepad)")
             .evaluateAll((sections) =>
               sections.every((section) => getComputedStyle(section).borderTopWidth === "0px"),
             ),

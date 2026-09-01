@@ -391,7 +391,8 @@
 }
 
 .session-hovercard__notepad {
-  padding-block: 4px 14px;
+  padding-block: 12px 14px;
+  border-top: 1px solid var(--border);
   border-radius: 0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px);
 }
 
