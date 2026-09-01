@@ -21,6 +21,7 @@ type LoginFailureKind =
   | "auth-required"
   | "auth-failed"
   | "auth-rate-limited"
+  | "profile-unavailable"
   | "pairing-required"
   | "insecure-context"
   | "origin-not-allowed"
@@ -80,6 +81,9 @@ type LoginFailureFeedbackParams = {
 };
 
 function resolveDocsLabel(href: string): string {
+  if (href.includes("/concepts/user-model")) {
+    return t("login.failure.docsProfile");
+  }
   if (href.includes("insecure-http")) {
     return t("login.failure.docsInsecure");
   }
@@ -109,16 +113,17 @@ function buildFeedback(params: {
   rawError: string;
   docsHref?: string;
   titleKey: string;
-  summaryKey: string;
+  summaryKey?: string;
   stepKeys: LoginFailureStepDefinition[];
   stepParams?: Record<string, string>;
   refreshAction?: { label: string };
 }): LoginFailureFeedback {
   const docsHref = params.docsHref ?? "https://docs.openclaw.ai/web/dashboard";
+  const rawError = redactLoginFailureError(params.rawError);
   return {
     kind: params.kind,
     title: t(params.titleKey, params.stepParams),
-    summary: t(params.summaryKey, params.stepParams),
+    summary: params.summaryKey ? t(params.summaryKey, params.stepParams) : rawError,
     refreshAction: params.refreshAction,
     steps: params.stepKeys.map((step) =>
       typeof step === "string"
@@ -127,7 +132,7 @@ function buildFeedback(params: {
     ),
     docsHref,
     docsLabel: resolveDocsLabel(docsHref),
-    rawError: redactLoginFailureError(params.rawError),
+    rawError,
   };
 }
 
@@ -141,6 +146,19 @@ function resolveLoginFailureFeedback(
   const rawError = params.lastError;
   const lastErrorCode = params.lastErrorCode ?? null;
   const lower = normalizeLowercaseStringOrEmpty(rawError);
+
+  if (lastErrorCode === ConnectErrorDetailCodes.AUTHENTICATED_PROFILE_UNAVAILABLE) {
+    return buildFeedback({
+      kind: "profile-unavailable",
+      rawError,
+      titleKey: "login.failure.profileUnavailable.title",
+      stepKeys: [
+        "login.failure.profileUnavailable.stepRetry",
+        "login.failure.profileUnavailable.stepAdmin",
+      ],
+      docsHref: "https://docs.openclaw.ai/concepts/user-model#gateway-profile-and-github-credit",
+    });
+  }
 
   if (lastErrorCode === ConnectErrorDetailCodes.CONTROL_UI_BUILD_MISMATCH) {
     return buildFeedback({

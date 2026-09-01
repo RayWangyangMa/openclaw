@@ -5288,6 +5288,13 @@ export const en: TranslationMap = {
       docsAuth: "Control UI auth docs",
       docsPairing: "Device pairing docs",
       docsInsecure: "Insecure HTTP docs",
+      docsProfile: "Gateway profile docs",
+      profileUnavailable: {
+        title: "Profile verification unavailable",
+        stepRetry: "Retry shortly. The Gateway will try to verify your profile again.",
+        stepAdmin:
+          "If this continues, ask a Gateway administrator to check the identity provider and GitHub API credential.",
+      },
       authRequired: {
         title: "Auth required",
         summary:
