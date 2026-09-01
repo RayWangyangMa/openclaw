@@ -4310,7 +4310,6 @@ describe("package artifact reuse", () => {
         actions: "read",
         contents: "read",
       },
-      "runs-on": "ubuntu-24.04",
     });
     expect(evidence.env).toMatchObject({
       CANDIDATE_ARTIFACT_JSON:
@@ -4678,12 +4677,18 @@ describe("package artifact reuse", () => {
     expect(workflow).toContain("bash .release-harness/scripts/ci-live-command-retry.sh");
     expect(workflow).toContain("use_github_hosted_runners:");
     for (const [jobName, runner] of [
-      ["validate_repo_e2e", "blacksmith-32vcpu-ubuntu-2404"],
       ["validate_special_e2e", "blacksmith-32vcpu-ubuntu-2404"],
       ["validate_live_provider_suites", "blacksmith-8vcpu-ubuntu-2404"],
     ] as const) {
       expect(workflowJob(LIVE_E2E_WORKFLOW, jobName)["runs-on"]).toBe(
         `\${{ inputs.use_github_hosted_runners && 'ubuntu-24.04' || '${runner}' }}`,
+      );
+    }
+    for (const jobName of ["build", "test"]) {
+      expect(
+        workflowJob(".github/workflows/openclaw-repo-e2e-reusable.yml", jobName)["runs-on"],
+      ).toBe(
+        "${{ inputs.use_github_hosted_runners && 'ubuntu-24.04' || 'blacksmith-32vcpu-ubuntu-2404' }}",
       );
     }
     expect(workflow).toContain("suite_id: native-live-src-gateway-core");
