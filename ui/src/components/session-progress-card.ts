@@ -129,12 +129,35 @@ function progressCounts(card: ProgressCard): { completed: number; total: number 
   };
 }
 
-function currentProgressStep(steps: readonly ProgressCardStep[]): ProgressCardStep | undefined {
+export type ProgressCardHeadsUp = {
+  completed: number;
+  step: ProgressCardStep;
+  total: number;
+};
+
+function unfinishedProgressStep(steps: readonly ProgressCardStep[]): ProgressCardStep | undefined {
   return (
     steps.find((step) => step.status === "in_progress") ??
-    steps.find((step) => step.status === "pending") ??
-    steps.findLast((step) => step.status === "completed")
+    steps.find((step) => step.status === "pending")
   );
+}
+
+export function progressCardHeadsUp(
+  card: ProgressCard | null | undefined,
+): ProgressCardHeadsUp | null {
+  const counts = card ? progressCounts(card) : null;
+  if (!counts || !card?.steps) {
+    return null;
+  }
+  const step = unfinishedProgressStep(card.steps);
+  if (!step) {
+    return null;
+  }
+  return { ...counts, step };
+}
+
+function currentProgressStep(steps: readonly ProgressCardStep[]): ProgressCardStep | undefined {
+  return unfinishedProgressStep(steps) ?? steps.findLast((step) => step.status === "completed");
 }
 
 function progressStepMarker(status: PresentedProgressStepStatus, sessionStatus?: SessionRunStatus) {
@@ -165,12 +188,51 @@ function currentProgressPosition(steps: readonly ProgressCardStep[]): number {
   return Math.max(1, index + 1);
 }
 
-function renderMarkdown(markdown: string | undefined) {
+function promoteFirstProgressBar(sanitizedHtml: string): string {
+  const template = document.createElement("template");
+  template.innerHTML = sanitizedHtml;
+  const progress = template.content.querySelector("progress");
+  if (!progress) {
+    return sanitizedHtml;
+  }
+  const value = progress.getAttribute("value")?.trim();
+  const max = progress.getAttribute("max")?.trim();
+  const label =
+    progress.getAttribute("aria-label")?.trim() ||
+    (value && max
+      ? `${t("sessionProgressCard.title")} · ${value}/${max}`
+      : t("sessionProgressCard.title"));
+  progress.setAttribute("aria-label", label);
+  const originalParent = progress.parentElement;
+  const wrapper = document.createElement("div");
+  wrapper.className = "session-progress-card__progress";
+  const visibleLabel = document.createElement("span");
+  visibleLabel.className = "session-progress-card__progress-label";
+  visibleLabel.textContent = label;
+  wrapper.append(visibleLabel, progress);
+  if (
+    originalParent?.tagName === "P" &&
+    originalParent.children.length === 0 &&
+    !originalParent.textContent?.trim()
+  ) {
+    originalParent.remove();
+  }
+  // Reorder only the already-sanitized tree; generated copy uses textContent so
+  // promoting a bar cannot reintroduce authored markup or event handlers.
+  template.content.prepend(wrapper);
+  return template.innerHTML;
+}
+
+export function renderProgressCardMarkdown(
+  markdown: string | undefined,
+  options: { promoteProgress?: boolean } = {},
+) {
   if (!markdown) {
     return nothing;
   }
+  const sanitizedHtml = toSanitizedMarkdownHtml(markdown, { progressBars: true });
   return html`<div class="session-progress-card__markdown sidebar-markdown">
-    ${unsafeHTML(toSanitizedMarkdownHtml(markdown, { progressBars: true }))}
+    ${unsafeHTML(options.promoteProgress ? promoteFirstProgressBar(sanitizedHtml) : sanitizedHtml)}
   </div>`;
 }
 
@@ -214,7 +276,7 @@ function renderSteps(card: ProgressCard, hasActiveRun: boolean, sessionStatus?: 
 
 function renderBody(card: ProgressCard, hasActiveRun: boolean, sessionStatus?: SessionRunStatus) {
   return html`<div class="session-progress-card__body">
-    ${renderMarkdown(card.markdown)} ${renderSteps(card, hasActiveRun, sessionStatus)}
+    ${renderProgressCardMarkdown(card.markdown)} ${renderSteps(card, hasActiveRun, sessionStatus)}
   </div>`;
 }
 
@@ -373,7 +435,8 @@ export function renderSessionProgressCard(
         >
       </summary>
       <div class="session-progress-card__body" role="region" aria-label=${composerCountLabel}>
-        ${renderMarkdown(card.markdown)} ${renderSteps(card, hasActiveRun, effectiveSessionStatus)}
+        ${renderProgressCardMarkdown(card.markdown)}
+        ${renderSteps(card, hasActiveRun, effectiveSessionStatus)}
       </div>
     </details>`;
   }

@@ -17,10 +17,9 @@ import {
 } from "./person-activity-link.ts";
 import { renderSessionColorDot } from "./session-color.ts";
 import { sessionOwnerInitials, type SessionCreatedActor } from "./session-owner-chip.ts";
-import { renderSessionProgressCard } from "./session-progress-card.ts";
+import { progressCardHeadsUp, renderProgressCardMarkdown } from "./session-progress-card.ts";
 import "./viewer-facepile.ts";
 
-const MAX_VISIBLE_PULL_REQUESTS = 4;
 const MAX_VISIBLE_ATTRIBUTION_FACES = 3;
 
 function participantLabel(participant: SessionParticipant): string {
@@ -91,24 +90,11 @@ function pullRequestStateIcon(state: ControlUiSessionPullRequest["state"]) {
   }
 }
 
-function changedFilesLabel(changedFiles: number): string {
-  return t(changedFiles === 1 ? "sessionHovercard.changedFile" : "sessionHovercard.changedFiles", {
-    count: String(changedFiles),
-  });
-}
-
-function renderDiffStats(item: { additions?: number; deletions?: number; changedFiles?: number }) {
-  if (
-    item.additions === undefined &&
-    item.deletions === undefined &&
-    item.changedFiles === undefined
-  ) {
+function renderDiffStats(item: { additions?: number; deletions?: number }) {
+  if (item.additions === undefined && item.deletions === undefined) {
     return nothing;
   }
   return html`<span class="session-hovercard__diff">
-    ${item.changedFiles === undefined
-      ? nothing
-      : html`<span class="session-hovercard__files">${changedFilesLabel(item.changedFiles)}</span>`}
     ${item.additions === undefined
       ? nothing
       : html`<span class="session-hovercard__additions">+${item.additions.toLocaleString()}</span>`}
@@ -345,7 +331,37 @@ function renderHeader(input: SessionHovercardInput) {
   </header>`;
 }
 
-function renderSessionContext({ row }: SessionHovercardInput) {
+function renderProgressHeadsUp(card: ProgressCard | null | undefined) {
+  const headsUp = progressCardHeadsUp(card);
+  if (!headsUp) {
+    return nothing;
+  }
+  const statusLabel = t(
+    headsUp.step.status === "in_progress"
+      ? "sessionProgressCard.status.inProgress"
+      : "sessionProgressCard.status.pending",
+  );
+  return html`<div
+    class="session-hovercard__context-row session-hovercard__plan-row"
+    aria-label=${t("sessionProgressCard.stepLabel", {
+      status: statusLabel,
+      step: headsUp.step.step,
+    })}
+    title=${headsUp.step.step}
+  >
+    <span class="session-hovercard__context-icon" aria-hidden="true"
+      >${headsUp.step.status === "in_progress"
+        ? html`<span class="session-run-spinner"></span>`
+        : icons.clock}</span
+    >
+    <span class="session-hovercard__context-value session-hovercard__plan-step"
+      >${headsUp.step.step}</span
+    >
+    <span class="session-hovercard__plan-count">${headsUp.completed}/${headsUp.total}</span>
+  </div>`;
+}
+
+function renderSessionContext({ row, progressCard }: SessionHovercardInput) {
   const context = row?.workContext;
   const placementIdentity =
     row?.placementProviderId && row.placementProfileId
@@ -361,48 +377,33 @@ function renderSessionContext({ row }: SessionHovercardInput) {
     !context &&
     !placementIdentity &&
     row?.boardFace !== "dashboard" &&
-    row?.hasAutomation !== true
+    row?.hasAutomation !== true &&
+    !progressCardHeadsUp(progressCard)
   ) {
     return nothing;
   }
   return html`<div class="session-hovercard__context">
     ${context
       ? html`<div
-            class="session-hovercard__context-row"
-            aria-label=${`${t(
-              context.kind === "project"
-                ? "sessionHovercard.projectLabel"
-                : "sessionHovercard.workspaceLabel",
-            )}: ${context.name}`}
-            title=${`${t(
-              context.kind === "project"
-                ? "sessionHovercard.projectLabel"
-                : "sessionHovercard.workspaceLabel",
-            )}: ${context.path}`}
+          class="session-hovercard__context-row"
+          aria-label=${`${t(
+            context.kind === "project"
+              ? "sessionHovercard.projectLabel"
+              : "sessionHovercard.workspaceLabel",
+          )}: ${context.name}`}
+          title=${`${t(
+            context.kind === "project"
+              ? "sessionHovercard.projectLabel"
+              : "sessionHovercard.workspaceLabel",
+          )}: ${context.path}`}
+        >
+          <span class="session-hovercard__context-icon" aria-hidden="true">${icons.folder}</span>
+          <span
+            class="session-hovercard__context-value session-hovercard__context-text"
+            title=${context.path}
+            >${context.name}</span
           >
-            <span class="session-hovercard__context-icon" aria-hidden="true">${icons.folder}</span>
-            <span
-              class="session-hovercard__context-value session-hovercard__context-text"
-              title=${context.path}
-              >${context.name}</span
-            >
-          </div>
-          ${context.kind === "project" && context.branch
-            ? html`<div
-                class="session-hovercard__context-row"
-                aria-label=${`${t("sessionHovercard.branchLabel")}: ${context.branch}`}
-                title=${`${t("sessionHovercard.branchLabel")}: ${context.branch}`}
-              >
-                <span class="session-hovercard__context-icon" aria-hidden="true"
-                  >${icons.gitBranch}</span
-                >
-                <span
-                  class="session-hovercard__context-value session-hovercard__context-text"
-                  title=${context.branch}
-                  >${context.branch}</span
-                >
-              </div>`
-            : nothing}`
+        </div>`
       : nothing}
     ${placementIdentity
       ? html`<div
@@ -440,32 +441,29 @@ function renderSessionContext({ row }: SessionHovercardInput) {
           >
         </div>`
       : nothing}
+    ${renderProgressHeadsUp(progressCard)}
   </div>`;
 }
 
-function renderPullRequestAuthor(author: ControlUiSessionPullRequest["author"]) {
-  // Each row is its own grid, so the cell is always emitted: dropping it would
-  // move the diff stats out of the trailing 1fr column and break the flush-right
-  // alignment that authored and authorless rows must share.
-  if (!author) {
-    return html`<span class="session-hovercard__pr-author"></span>`;
+function renderAgentNotepad(card: ProgressCard | null | undefined) {
+  if (!card?.markdown?.trim()) {
+    return nothing;
   }
-  return html`<span
-    class="session-hovercard__pr-author"
-    title=${t("sessionHovercard.pullRequestAuthorLabel", { login: author.login })}
-    >${author.login}</span
-  >`;
+  return html`<section
+    class="session-hovercard__section session-hovercard__notepad"
+    aria-label=${t("sessionHovercard.agentNotepad")}
+  >
+    <div class="session-hovercard__notepad-title">${t("sessionHovercard.agentNotepad")}</div>
+    ${renderProgressCardMarkdown(card.markdown, { promoteProgress: true })}
+  </section>`;
 }
 
 function renderPullRequestRow(pullRequest: ControlUiSessionPullRequest) {
   const state = pullRequestStateLabel(pullRequest.state);
   const checks = pullRequest.checks ? checksLabel(pullRequest.checks) : null;
   const details = [
-    pullRequest.author
-      ? t("sessionHovercard.pullRequestAuthorLabel", { login: pullRequest.author.login })
-      : null,
+    pullRequest.title,
     checks,
-    pullRequest.changedFiles === undefined ? null : changedFilesLabel(pullRequest.changedFiles),
     pullRequest.additions === undefined ? null : `+${pullRequest.additions.toLocaleString()}`,
     pullRequest.deletions === undefined ? null : `−${pullRequest.deletions.toLocaleString()}`,
   ].filter((detail): detail is string => Boolean(detail));
@@ -488,8 +486,8 @@ function renderPullRequestRow(pullRequest: ControlUiSessionPullRequest) {
       title=${checks ? `${state} · ${checks}` : state}
       >${pullRequestStateIcon(pullRequest.state)}</span
     >
-    <span class="session-hovercard__pr-number">#${pullRequest.number}</span>
-    ${renderPullRequestAuthor(pullRequest.author)}${renderDiffStats(pullRequest)}
+    <span class="session-hovercard__pr-title" title=${pullRequest.title}>${pullRequest.title}</span>
+    ${renderDiffStats(pullRequest)}
   </a>`;
 }
 
@@ -498,7 +496,7 @@ function renderPullRequestDetails(snapshot: ControlUiSessionPullRequestSnapshot 
     return nothing;
   }
   if (snapshot.pullRequests.length > 0) {
-    const visible = snapshot.pullRequests.slice(0, MAX_VISIBLE_PULL_REQUESTS);
+    const visible = snapshot.pullRequests.slice(0, 1);
     const hiddenCount = snapshot.pullRequests.length - visible.length;
     return html`<div class="session-hovercard__pr-list">
       ${visible.map(renderPullRequestRow)}
@@ -514,22 +512,24 @@ function renderPullRequestDetails(snapshot: ControlUiSessionPullRequestSnapshot 
     return nothing;
   }
   const createPullRequest = t("chat.pullRequests.createPr");
-  return html`
-    <div class="session-hovercard__branch-row">
-      <span class="session-hovercard__branch-icon" aria-hidden="true">${icons.gitBranch}</span>
-      <span class="session-hovercard__branch-name"
-        >${branch.owner}/${branch.repo} · ${branch.branch}</span
-      >
-      ${renderDiffStats(branch)}
-    </div>
+  const createPullRequestLabel = t("chat.pullRequests.createPrLabel", {
+    branch: branch.branch,
+  });
+  return html`<div class="session-hovercard__branch-row">
+    <span class="session-hovercard__branch-icon" aria-hidden="true">${icons.gitBranch}</span>
     ${branch.createUrl
-      ? html`<div class="session-hovercard__no-pr">
-          <a href=${branch.createUrl} target="_blank" rel="noopener noreferrer"
-            >${createPullRequest}</a
-          >
-        </div>`
-      : nothing}
-  `;
+      ? html`<a
+          class="session-hovercard__branch-action"
+          href=${branch.createUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label=${createPullRequestLabel}
+          title=${createPullRequestLabel}
+          >${createPullRequest}</a
+        >`
+      : html`<span class="session-hovercard__branch-label">${t("chat.sessionDiff.title")}</span>`}
+    ${renderDiffStats(branch)}
+  </div>`;
 }
 
 export function renderSessionHovercard(input: SessionHovercardInput) {
@@ -540,7 +540,8 @@ export function renderSessionHovercard(input: SessionHovercardInput) {
     input.row?.workContext ||
     (input.row?.placementProviderId && input.row.placementProfileId) ||
     input.row?.boardFace === "dashboard" ||
-    input.row?.hasAutomation === true,
+    input.row?.hasAutomation === true ||
+    progressCardHeadsUp(input.progressCard),
   );
   const lastMessagePreview = input.progressCard
     ? undefined
@@ -569,17 +570,6 @@ export function renderSessionHovercard(input: SessionHovercardInput) {
           <div class="session-hovercard__excerpt">${lastMessagePreview}</div>
         </section>`
       : nothing}
-    ${input.progressCard
-      ? html`<footer class="session-hovercard__section session-hovercard__progress-footer">
-          ${renderSessionProgressCard(
-            input.progressCard,
-            "hovercard",
-            undefined,
-            input.row?.status,
-            input.row?.startedAt,
-            input.row?.endedAt,
-          )}
-        </footer>`
-      : nothing}
+    ${renderAgentNotepad(input.progressCard)}
   </div>`;
 }
