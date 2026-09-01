@@ -178,6 +178,32 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("CronPage header", () => {
+  it("uses the shared settings header with concise context and scope actions", async () => {
+    const gateway = createGateway(
+      { request: createRequest() } as unknown as GatewayBrowserClient,
+      false,
+    );
+    const context = createContext(gateway);
+    context.agents.state.agentsList = {
+      defaultId: "main",
+      mainKey: "main",
+      scope: "global",
+      agents: [{ id: "main" }, { id: "research" }],
+    };
+    const page = createPage(context, { render: true });
+
+    await page.updateComplete;
+
+    expect(page.querySelector(".page-title")?.textContent).toBe("Automations");
+    expect(page.querySelector(".content-header--settings")).not.toBeNull();
+    expect(page.querySelector(".page-subtitle")?.textContent).toBe(
+      "Scheduled tasks and recurring agent runs.",
+    );
+    expect(page.querySelector(".page-header-actions .agent-scope-control")).not.toBeNull();
+  });
+});
+
 describe("CronPage editor state sync", () => {
   it("opens a linked job's history after its jobs load and highlights the linked run", async () => {
     const job: CronJob = {

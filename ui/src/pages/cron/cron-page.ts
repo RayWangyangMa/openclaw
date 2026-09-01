@@ -2,11 +2,12 @@ import { consume } from "@lit/context";
 import { html, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 import type { AgentsListResult, CronJob } from "../../api/types.ts";
-import { titleForRoute } from "../../app-navigation.ts";
+import { subtitleForRoute, titleForRoute } from "../../app-navigation.ts";
 import { applicationContext, type ApplicationContext } from "../../app/context.ts";
 import { readGatewayOperatorAccess } from "../../app/operator-access.ts";
 import { renderAgentScopeControl } from "../../components/agent-scope-control.ts";
 import { showConfirmDialog } from "../../components/confirm-dialog.ts";
+import { renderSettingsPageHeader } from "../../components/settings-ui.ts";
 import { renderSettingsWorkspace } from "../../components/settings-workspace.ts";
 import { t } from "../../i18n/index.ts";
 import { watchAgentScope } from "../../lib/agents/index.ts";
@@ -419,15 +420,14 @@ class CronPage extends OpenClawLightDomElement {
     });
     const canManage = this.canManageCron;
     return html`
-      <section class="content-header">
-        <div>
-          <div class="page-title">${titleForRoute("cron")}</div>
-        </div>
-        ${renderAgentScopeControl({
+      ${renderSettingsPageHeader({
+        title: titleForRoute("cron"),
+        subtitle: subtitleForRoute("cron"),
+        actions: renderAgentScopeControl({
           agents: this.agentsList?.agents ?? [],
           selection: this.context.agentSelection,
-        })}
-      </section>
+        }),
+      })}
       ${renderSettingsWorkspace(
         renderCron({
           basePath: this.context.basePath,

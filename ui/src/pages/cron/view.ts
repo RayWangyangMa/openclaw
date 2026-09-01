@@ -546,39 +546,12 @@ function renderListTabs(props: CronProps) {
   });
 }
 
-// Navigation and primary actions stay stable above the task-only filter row.
+// Navigation stays stable above the task-only filter row. List actions sit
+// beside the table they affect instead of competing with the tabs.
 function renderToolbar(props: CronProps, hasAdvancedJobsFilters: boolean) {
   return html`
     <div class="cron-toolbar">
-      <div class="cron-toolbar__primary">
-        ${renderListTabs(props)}
-        <div class="cron-toolbar__end">
-          <button
-            type="button"
-            class="btn btn--sm btn--ghost cron-refresh ${props.loading
-              ? "cron-refresh--loading"
-              : ""}"
-            ?disabled=${props.loading}
-            title=${props.loading ? t("cron.list.refreshing") : t("cron.list.refresh")}
-            aria-label=${t("cron.list.refresh")}
-            @click=${props.onRefresh}
-          >
-            ${icon("refresh")}
-          </button>
-          ${props.canManage
-            ? html`
-                <button
-                  type="button"
-                  class="btn primary btn--sm cron-new-task"
-                  data-test-id="cron-new-task"
-                  @click=${() => props.onOpenCreate()}
-                >
-                  ${icon("plus")} ${t("cron.list.newTask")}
-                </button>
-              `
-            : nothing}
-        </div>
-      </div>
+      <div class="cron-toolbar__primary">${renderListTabs(props)}</div>
       ${props.listTab === "tasks"
         ? html`
             <div class="cron-toolbar__filters">
@@ -611,6 +584,32 @@ function renderToolbar(props: CronProps, hasAdvancedJobsFilters: boolean) {
             </div>
           `
         : nothing}
+      <div class="cron-toolbar__actions">
+        <button
+          type="button"
+          class="btn btn--sm btn--ghost cron-refresh ${props.loading
+            ? "cron-refresh--loading"
+            : ""}"
+          ?disabled=${props.loading}
+          title=${props.loading ? t("cron.list.refreshing") : t("cron.list.refresh")}
+          aria-label=${t("cron.list.refresh")}
+          @click=${props.onRefresh}
+        >
+          ${icon("refresh")}
+        </button>
+        ${props.canManage
+          ? html`
+              <button
+                type="button"
+                class="btn primary btn--sm cron-new-task"
+                data-test-id="cron-new-task"
+                @click=${() => props.onOpenCreate()}
+              >
+                ${icon("plus")} ${t("cron.list.newTask")}
+              </button>
+            `
+          : nothing}
+      </div>
     </div>
   `;
 }
