@@ -8,7 +8,7 @@ import {
 } from "../../../config/legacy.shared.js";
 import { normalizeConfiguredMemoryExtraPaths } from "../../../memory-host-sdk/host/config-utils.js";
 import type { MemoryExtraPath } from "../../../memory-host-sdk/host/types.js";
-import { visitAgentConfigScopes } from "./legacy-config-migrations.runtime.tier-eval.js";
+import { visitAgentConfigScopes } from "./legacy-config-record-shared.js";
 import { deleteRetiredPath } from "./legacy-config-record-shared.js";
 
 const rule = (
