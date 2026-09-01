@@ -46,11 +46,13 @@ const TERMINAL_STEP_STATUS_LABEL_KEYS: Partial<Record<SessionRunStatus, Paramete
 class ProgressActivityTimeDirective extends AsyncDirective {
   private timestamp = 0;
   private labelKey: Parameters<typeof t>[0] = "sessionProgressCard.activity.updated";
+  private compact = false;
   private timer: ReturnType<typeof setInterval> | undefined;
 
-  render(timestamp: number, labelKey: Parameters<typeof t>[0]) {
+  render(timestamp: number, labelKey: Parameters<typeof t>[0], compact = false) {
     this.timestamp = timestamp;
     this.labelKey = labelKey;
+    this.compact = compact;
     if (this.isConnected) {
       this.startTimer();
     }
@@ -82,11 +84,15 @@ class ProgressActivityTimeDirective extends AsyncDirective {
 
   private renderTime() {
     const label = t(this.labelKey, { time: formatRelativeTimestamp(this.timestamp) });
+    const visibleLabel =
+      this.compact && this.labelKey === "sessionProgressCard.activity.updated"
+        ? formatRelativeTimestamp(this.timestamp, { suffix: false })
+        : label;
     return html`<time
       datetime=${new Date(this.timestamp).toISOString()}
       aria-label=${label}
       title=${label}
-      >${label}</time
+      >${visibleLabel}</time
     >`;
   }
 }
@@ -254,7 +260,11 @@ export function renderSessionProgressCard(
     ? ACTIVITY_LABEL_KEYS[sessionStatus!]
     : "sessionProgressCard.activity.updated";
   const accessibleLabel = countLabel;
-  const lastActivity = progressActivityTime(activityTimestamp, activityKey);
+  const lastActivity = progressActivityTime(
+    activityTimestamp,
+    activityKey,
+    placement === "hovercard",
+  );
   const dismissible = Boolean(
     onDismiss && card.steps?.length && card.steps.every((step) => step.status === "completed"),
   );

@@ -50,7 +50,7 @@
   display: grid;
   width: 100%;
   grid-template-rows: auto auto;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -64,14 +64,51 @@
   white-space: normal;
 }
 
-.session-hovercard__meta {
+.session-hovercard__attribution {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 7px;
+  max-width: 100%;
   min-width: 0;
-  color: var(--muted);
-  font-size: var(--control-ui-text-xs);
+  padding: 3px 8px 3px 3px;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 58%, transparent);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--panel-strong) 72%, transparent);
+  color: var(--text);
+  font-size: var(--control-ui-text-sm);
   line-height: 1.35;
-  overflow-wrap: normal;
-  word-break: normal;
-  white-space: normal;
+}
+
+.session-hovercard__attribution-avatars {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  order: -1;
+}
+
+.session-hovercard__attribution-avatars .viewer-facepile {
+  margin-left: -5px;
+}
+
+.session-hovercard__attribution-copy {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.session-hovercard__attribution-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 550;
+}
+
+.session-hovercard__attribution-others {
+  flex: none;
+  margin-left: 0.35em;
+  color: var(--muted);
 }
 
 .session-hovercard__no-pr,
@@ -147,48 +184,6 @@
   white-space: nowrap;
 }
 
-.session-hovercard__identity-copy {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text);
-  white-space: nowrap;
-}
-
-.session-hovercard__participants {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text);
-  font-weight: 450;
-  white-space: nowrap;
-}
-
-.session-hovercard__identity-name {
-  flex: none;
-  font-weight: 500;
-}
-
-.session-hovercard__identity-separator {
-  flex: none;
-  color: var(--muted);
-}
-
-.session-hovercard__participant {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.session-hovercard__participants-more {
-  flex: none;
-  color: var(--muted);
-}
-
 .session-hovercard__creator-avatar,
 .session-hovercard__creator-avatar .viewer-avatar {
   display: block;
@@ -228,6 +223,20 @@
   font-size: 8px;
   font-weight: 700;
   place-items: center;
+}
+
+.session-hovercard__attribution .session-hovercard__creator-avatar,
+.session-hovercard__attribution .session-hovercard__creator-avatar .viewer-avatar,
+.session-hovercard__attribution .session-hovercard__creator-avatar .channel-avatar,
+.session-hovercard__attribution .session-hovercard__creator-avatar-fallback {
+  width: 18px;
+  height: 18px;
+}
+
+.session-hovercard__attribution .session-hovercard__creator-avatar .viewer-avatar,
+.session-hovercard__attribution .session-hovercard__creator-avatar .channel-avatar,
+.session-hovercard__attribution .session-hovercard__creator-avatar-fallback {
+  border: 1.5px solid var(--panel-strong);
 }
 
 .session-hovercard__branch-row {
@@ -394,13 +403,20 @@
   background: var(--session-hovercard-progress-surface);
 }
 
+.session-hovercard__section + .session-hovercard__progress-footer {
+  border-top: 0;
+}
+
 .session-hovercard__progress-footer .session-progress-card__heading {
   margin-bottom: var(--space-3);
 }
 
 .session-hovercard__progress-footer .session-progress-card__heading-actions {
-  color: var(--text);
+  color: var(--muted);
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .session-progress-card--composer {

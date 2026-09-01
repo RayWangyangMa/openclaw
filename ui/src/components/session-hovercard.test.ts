@@ -81,9 +81,9 @@ describe("renderSessionHovercard", () => {
     expect(container.querySelector(".session-hovercard__title")?.textContent).toBe(
       "Ship the release",
     );
-    expect(container.querySelector(".session-hovercard__created-age")?.textContent).toBe("2 hr");
-    expect(container.querySelector(".session-hovercard__meta")?.textContent).toBe("Updated 5m ago");
-    expect(container.querySelector(".session-hovercard__identity-row")?.textContent).toContain(
+    expect(container.querySelector(".session-hovercard__created-age")?.textContent).toBe("2h");
+    expect(container.querySelector(".session-hovercard__meta")).toBeNull();
+    expect(container.querySelector(".session-hovercard__attribution")?.textContent).toContain(
       "Alice Baker",
     );
     expect(
@@ -310,14 +310,14 @@ describe("renderSessionHovercard", () => {
     expect(container.querySelector(".session-hovercard__section--header")).toBeNull();
   });
 
-  it("does not present a node-only subtitle as a project", () => {
+  it("does not present a node-only subtitle as project metadata", () => {
     const container = document.createElement("div");
     render(
       renderSessionHovercard({ row: row({ subtitle: "macbook", workContext: undefined }) }),
       container,
     );
 
-    expect(container.querySelector(".session-hovercard__section--metadata")).not.toBeNull();
+    expect(container.querySelector(".session-hovercard__section--metadata")).toBeNull();
     expect(container.querySelector(".session-hovercard__context-text")).toBeNull();
   });
 
@@ -448,7 +448,7 @@ describe("renderSessionHovercard", () => {
     );
   });
 
-  it("deduplicates creator and self from the compact participant identity", () => {
+  it("deduplicates creator and self from the compact attribution", () => {
     const container = document.createElement("div");
     render(
       renderSessionHovercard({
@@ -469,16 +469,16 @@ describe("renderSessionHovercard", () => {
 
     expect(
       container
-        .querySelector(".session-hovercard__identity-copy")
+        .querySelector(".session-hovercard__attribution-copy")
         ?.textContent?.replace(/\s+/gu, " ")
         .trim(),
-    ).toBe("Alice Baker · with Mira, Riley +3");
+    ).toBe("Alice Baker & 5 others");
     expect(
-      container.querySelector(".session-hovercard__identity-row")?.getAttribute("aria-label"),
-    ).toBe("Alice Baker, Mira, Riley 3 more participants");
+      container.querySelector(".session-hovercard__attribution")?.getAttribute("aria-label"),
+    ).toBe("Alice Baker, 5 more participants");
   });
 
-  it("opens the creator's activity feed from the identity row", () => {
+  it("opens the creator's activity feed from the attribution", () => {
     const container = document.createElement("div");
     const navigate = vi.fn();
     render(
@@ -489,7 +489,7 @@ describe("renderSessionHovercard", () => {
       container,
     );
 
-    const name = container.querySelector<HTMLAnchorElement>(".session-hovercard__identity-name");
+    const name = container.querySelector<HTMLAnchorElement>(".session-hovercard__attribution-name");
     expect(name?.getAttribute("href")).toBe("/ui/activity?person=alice");
     expect(
       container.querySelector(".person-activity-avatar-link")?.getAttribute("aria-hidden"),
@@ -501,8 +501,8 @@ describe("renderSessionHovercard", () => {
     expect(click.defaultPrevented).toBe(true);
   });
 
-  it("links every participant name while keeping the locale's list phrasing", () => {
-    const container = document.createElement("div");
+  it("links participant avatars while keeping the creator first", async () => {
+    const container = document.body.appendChild(document.createElement("div"));
     const navigate = vi.fn();
     render(
       renderSessionHovercard({
@@ -522,16 +522,20 @@ describe("renderSessionHovercard", () => {
 
     expect(
       container
-        .querySelector(".session-hovercard__identity-copy")
+        .querySelector(".session-hovercard__attribution-copy")
         ?.textContent?.replace(/\s+/gu, " ")
         .trim(),
-    ).toBe("Alice Baker · with Mira, Riley +2");
+    ).toBe("Alice Baker & 4 others");
+    const facepile = container.querySelector<HTMLElement & { updateComplete: Promise<boolean> }>(
+      "openclaw-viewer-facepile",
+    );
+    await facepile?.updateComplete;
     const participantLinks = [
-      ...container.querySelectorAll<HTMLAnchorElement>("a.session-hovercard__participant-name"),
+      ...container.querySelectorAll<HTMLAnchorElement>("openclaw-viewer-facepile a"),
     ];
-    expect(participantLinks.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
-      ["Mira", "/activity?person=mira"],
-      ["Riley", "/activity?person=riley"],
+    expect(participantLinks.map((link) => link.getAttribute("href"))).toEqual([
+      "/activity?person=mira",
+      "/activity?person=riley",
     ]);
 
     participantLinks[1]?.dispatchEvent(
@@ -540,16 +544,42 @@ describe("renderSessionHovercard", () => {
     expect(navigate).toHaveBeenCalledWith("riley");
   });
 
+  it("uses the first participant as the attribution when the creator is unknown", () => {
+    const container = document.createElement("div");
+    render(
+      renderSessionHovercard({
+        selfUserId: "self",
+        row: row({
+          createdActor: undefined,
+          participants: [
+            { identity: { type: "profile", id: "self" }, label: "You" },
+            { identity: { type: "profile", id: "mira" }, label: "Mira" },
+            { identity: { type: "profile", id: "riley" }, label: "Riley" },
+          ],
+          participantCount: 5,
+        }),
+      }),
+      container,
+    );
+
+    expect(
+      container
+        .querySelector(".session-hovercard__attribution-copy")
+        ?.textContent?.replace(/\s+/gu, " ")
+        .trim(),
+    ).toBe("Mira & 3 others");
+  });
+
   it("keeps the identity plain text when no activity route is available", () => {
     const container = document.createElement("div");
     render(renderSessionHovercard({ row: row() }), container);
 
-    expect(container.querySelector(".session-hovercard__identity-name")?.tagName).toBe("SPAN");
+    expect(container.querySelector(".session-hovercard__attribution-name")?.tagName).toBe("SPAN");
     expect(container.querySelector(".person-activity-avatar-link")).toBeNull();
   });
 
-  it("keeps authoritative overflow when the participant projection is truncated", () => {
-    const container = document.createElement("div");
+  it("keeps authoritative overflow when the participant projection is truncated", async () => {
+    const container = document.body.appendChild(document.createElement("div"));
     render(
       renderSessionHovercard({
         selfUserId: "self",
@@ -566,9 +596,11 @@ describe("renderSessionHovercard", () => {
       container,
     );
 
-    expect(container.querySelector(".session-hovercard__participants-more")?.textContent).toBe(
-      "+2",
+    const facepile = container.querySelector<HTMLElement & { updateComplete: Promise<boolean> }>(
+      "openclaw-viewer-facepile",
     );
+    await facepile?.updateComplete;
+    expect(facepile?.querySelector(".viewer-avatar--overflow")?.textContent).toBe("+3");
   });
 
   it("renders nothing when no session facts are known", () => {

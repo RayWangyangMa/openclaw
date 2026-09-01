@@ -338,12 +338,13 @@ suite.define(() => {
           .toBe("none");
         await captureProof(page, "sidebar-row-hovercard-maximum.png");
         await expect
-          .poll(() => card.locator(".session-hovercard__identity-row").textContent())
-          .toContain("Ada King");
-        expect(await card.locator(".session-hovercard__identity-row").textContent()).toContain(
-          "Mira",
-        );
-        expect(await card.locator(".session-hovercard__identity-row").textContent()).not.toContain(
+          .poll(async () =>
+            (await card.locator(".session-hovercard__attribution-copy").textContent())
+              ?.replace(/\s+/gu, " ")
+              .trim(),
+          )
+          .toBe("Ada King & 4 others");
+        expect(await card.locator(".session-hovercard__attribution").textContent()).not.toContain(
           "You",
         );
         expect(await card.locator(".session-hovercard__context-text").allTextContents()).toEqual([
@@ -353,6 +354,10 @@ suite.define(() => {
         await expect
           .poll(() => card.locator(".session-hovercard__created-age").textContent())
           .toBe("3mo");
+        expect(await card.locator(".session-hovercard__meta").count()).toBe(0);
+        await expect
+          .poll(() => card.locator(".session-progress-card__heading-actions").textContent())
+          .toContain("15m · 1/3");
         const avatar = card.locator("openclaw-viewer-avatar.session-hovercard__creator-avatar");
         await avatar.waitFor({ state: "visible" });
         await expect
@@ -741,7 +746,7 @@ suite.define(() => {
         expect(await card.locator(".session-hovercard__title").textContent()).toBe(
           "Catalog release review",
         );
-        expect(await card.locator(".session-hovercard__created-age").textContent()).toBe("2 hr");
+        expect(await card.locator(".session-hovercard__created-age").textContent()).toBe("2h");
         expect(await card.locator(".session-hovercard__context-text").allTextContents()).toEqual([
           "openclaw",
           "catalog-hovercard",
