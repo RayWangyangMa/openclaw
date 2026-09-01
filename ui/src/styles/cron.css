@@ -72,6 +72,7 @@
 
 .cron-toolbar__primary {
   flex-wrap: nowrap;
+  margin-block: var(--space-2);
 }
 
 /* Toolbar buttons share the settings control height with the adjacent
