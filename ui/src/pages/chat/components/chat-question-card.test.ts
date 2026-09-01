@@ -109,6 +109,16 @@ describe("shared question panel", () => {
     drawGateway(prompt, { onSubmit });
     const panel = await panelIn(container);
 
+    expect(
+      container.querySelector('[role="radio"] .chat-question-panel__option-marker'),
+    ).not.toBeNull();
+    expect(container.querySelector('[role="radio"] kbd')).not.toBeNull();
+    expect(
+      container.querySelector(
+        ".chat-question-panel__option--other .chat-question-panel__option-marker",
+      ),
+    ).not.toBeNull();
+    expect(container.querySelector(".chat-question-panel__option--other kbd")).not.toBeNull();
     expect(container.querySelector(".chat-question-panel__progress")?.textContent).toBe("1/2");
     container.querySelector<HTMLButtonElement>('[role="radio"]')?.click();
     await panel.updateComplete;
@@ -169,6 +179,8 @@ describe("shared question panel", () => {
 
     expect(hosts.value).toBe("api.example.test");
     expect(secret.autocomplete).toBe("off");
+    expect(container.querySelector(".chat-question-panel__option-marker")).toBeNull();
+    expect(container.querySelector("kbd")).toBeNull();
     expect(container.textContent).toContain("release-agent");
     expect(container.textContent).toContain("agent:main:main");
     expect(container.textContent).toContain("Stores FAKE_DEPLOYMENT_API_KEY as Protected secret");

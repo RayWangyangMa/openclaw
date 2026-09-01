@@ -471,7 +471,7 @@ class ChatQuestionPanel extends LitElement {
     const requestProgress = model.requestPosition
       ? `${model.requestPosition.current}/${model.requestPosition.total}`
       : null;
-
+    const freeTextOnly = question.options.length === 0;
     const requestNavigation = requestProgress
       ? html`<div class="chat-question-panel__request-nav">
           <button
@@ -641,28 +641,33 @@ class ChatQuestionPanel extends LitElement {
               </div>
             `
           : nothing}
-        ${question.isOther || question.options.length === 0
+        ${question.isOther || freeTextOnly
           ? html`
               <label
-                class="chat-question-panel__option chat-question-panel__option--other ${this.freeTextValue(
-                  question,
-                )
-                  ? "chat-question-panel__option--selected"
-                  : ""}"
+                class=${freeTextOnly
+                  ? "stack muted"
+                  : `chat-question-panel__option chat-question-panel__option--other ${
+                      this.freeTextValue(question) ? "chat-question-panel__option--selected" : ""
+                    }`}
               >
-                <span class="chat-question-panel__option-marker" aria-hidden="true"></span>
+                ${freeTextOnly
+                  ? nothing
+                  : html`<span
+                      class="chat-question-panel__option-marker"
+                      aria-hidden="true"
+                    ></span>`}
                 <input
-                  class="chat-question-panel__other"
+                  class=${freeTextOnly ? "input" : "chat-question-panel__other"}
                   type=${question.isSecret ? "password" : "text"}
                   autocomplete="off"
-                  placeholder=${t("chat.questions.other")}
+                  placeholder=${freeTextOnly ? "" : t("chat.questions.other")}
                   aria-label=${t("chat.questions.ownAnswerFor", { header: question.header })}
                   .value=${this.freeTextById.get(question.questionId) ?? ""}
                   ?disabled=${disabled}
                   @input=${(event: Event) =>
                     this.setFreeText(model, question, (event.target as HTMLInputElement).value)}
                 />
-                <kbd>${question.options.length + 1}</kbd>
+                ${freeTextOnly ? nothing : html`<kbd>${question.options.length + 1}</kbd>`}
               </label>
             `
           : nothing}
